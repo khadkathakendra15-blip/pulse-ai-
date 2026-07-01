@@ -1,19 +1,17 @@
-// Pulse AI — data model.
+// Pulse AI — data model (PostgreSQL).
 //
-// Local dev uses SQLite (zero external setup). For production, switch the
-// datasource to Postgres — only these two lines change:
-//     provider = "postgresql"
-//     url      = env("DATABASE_URL")   // postgres://…
-// The models are portable as-is (metric/plan are stored as strings, not DB
-// enums, so the same schema works on both). HealthSample is the candidate for a
-// TimescaleDB hypertable on Postgres once volume grows (see docs/ARCHITECTURE.md).
+// DATABASE_URL is a postgres:// connection string (Railway Postgres in prod;
+// a hosted Neon/Supabase or local Postgres in dev). Schema is created on boot
+// via `prisma db push` (see Dockerfile). metric/plan are stored as strings, not
+// DB enums. HealthSample is the candidate for a TimescaleDB hypertable once
+// volume grows (see docs/ARCHITECTURE.md).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

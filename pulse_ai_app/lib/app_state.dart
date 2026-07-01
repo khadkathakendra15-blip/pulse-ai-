@@ -15,6 +15,7 @@ class AppState extends ChangeNotifier {
   bool nepali = true; // mockup defaults to 'np'
   bool whyOpen = false;
   bool whyScoreOpen = false;
+  bool coachTyping = false; // simulated "typing…" indicator
 
   /// Coach conversation. Null means "show the opening script".
   List<ChatMessage>? _messages;
@@ -63,15 +64,34 @@ class AppState extends ChangeNotifier {
   }
 
   // ── coach ───────────────────────────────────────────────────────────────────
+  /// Quick-prompt chip → user bubble, then the matching canned analysis.
   void ask(QuickPrompt q) {
-    final d = data;
-    final current = _messages ?? d.baseMessages();
-    _messages = [
-      ...current,
-      ChatMessage.user(nepali ? q.npQuestion : q.enQuestion),
-      d.cannedReply(q.cannedKey),
-    ];
+    _appendUser(nepali ? q.npQuestion : q.enQuestion);
+    _replyAfterDelay(() => data.cannedReply(q.cannedKey));
+  }
+
+  /// Free-typed message → user bubble, then a simulated bilingual reply.
+  void sendMessage(String text) {
+    final t = text.trim();
+    if (t.isEmpty) return;
+    _appendUser(t);
+    _replyAfterDelay(() => data.dummyReply(t));
+  }
+
+  void _appendUser(String text) {
+    final current = _messages ?? data.baseMessages();
+    _messages = [...current, ChatMessage.user(text)];
+    coachTyping = true;
     notifyListeners();
+  }
+
+  void _replyAfterDelay(ChatMessage Function() build) {
+    Future.delayed(const Duration(milliseconds: 750), () {
+      final current = _messages ?? data.baseMessages();
+      _messages = [...current, build()];
+      coachTyping = false;
+      notifyListeners();
+    });
   }
 
   // ── band lifecycle ──────────────────────────────────────────────────────────

@@ -224,6 +224,56 @@ class PulseData {
   }
 
   // ── Long-form bilingual strings ────────────────────────────────────────────
+  /// Simulated coach reply for free-typed messages. Keyword-routes to the
+  /// canned analyses where relevant, otherwise a grounded bilingual answer.
+  /// Pure demo — no network/LLM.
+  ChatMessage dummyReply(String q) {
+    final s = q.toLowerCase();
+    bool has(List<String> w) => w.any(s.contains);
+
+    if (has(['recovery', 'रिकभरी', 'रिकवरी'])) return cannedReply('recovery');
+    if (has(['workout', 'exercise', 'train', 'gym', 'run', 'व्यायाम', 'कसरत'])) return cannedReply('workout');
+    if (has(['plan', 'routine', 'schedule', 'योजना', 'दिनचर्या'])) return cannedReply('plan');
+
+    if (has(['sleep', 'निद्रा', 'sutne', 'सुत'])) {
+      return ChatMessage.aiText(np
+          ? 'हिजो राति ८घ १२मि सुत्नुभयो — deep sleep १घ ५२मि, राम्रो हो। आज १०:३० अघि सुत्दा HRV अझ बढ्छ। 😴'
+          : "Last night was 8h 12m with 1h 52m of deep sleep — solid. Sleeping before 10:30 PM tonight should push your HRV even higher. 😴");
+    }
+    if (has(['stress', 'तनाव', 'anxiety', 'anxious', 'chinta'])) {
+      return ChatMessage.aiText(np
+          ? 'तपाईंको stress अहिले Low छ 🟢 — हिजोको breathing session ले मदद गर्‍यो। आज पनि ५ मिनेट breathing गर्नुहोस्।'
+          : "Your stress is Low right now 🟢 — yesterday's breathing session helped. Try another 5-min breathing break today.");
+    }
+    if (has(['water', 'hydrat', 'पानी', 'drink'])) {
+      return ChatMessage.aiText(np
+          ? '💧 आज २.५L पानी लक्ष्य — अहिलेसम्म १.२L। Hydration ले recovery र energy दुवैमा मदद गर्छ।'
+          : "💧 Aim for 2.5L today — you're at 1.2L so far. Hydration helps both recovery and energy.");
+    }
+    if (has(['heart', 'bpm', 'मुटु', 'हृदय'])) {
+      return ChatMessage.aiText(np
+          ? 'Resting heart rate ५८ bpm — ६ महिनाको सबैभन्दा कम। राम्रो cardiac fitness को संकेत ❤️।'
+          : "Resting heart rate is 58 bpm — a 6-month low. A strong sign of good cardiac fitness ❤️.");
+    }
+    if (has(['hrv'])) {
+      return ChatMessage.aiText(np
+          ? 'HRV ६८ms छ — यो हप्ताको उच्चतम। Nervous system पूर्ण recover भएको छ, training का लागि उत्तम।'
+          : "HRV is 68ms — this week's peak. Your nervous system is fully recovered, ideal for training.");
+    }
+    if (has(['hi', 'hello', 'hey', 'नमस्ते', 'namaste'])) {
+      return ChatMessage.aiText(np
+          ? 'नमस्ते ठाकेन्द्र! 👋 आज Recovery ८९, Readiness ८४ — उत्कृष्ट दिन। के सोध्न चाहनुहुन्छ?'
+          : 'Hi Thakendra! 👋 Recovery 89, Readiness 84 today — a great day. What would you like to know?');
+    }
+    if (has(['thank', 'धन्यवाद', 'thanks'])) {
+      return ChatMessage.aiText(np ? 'स्वागत छ! 🙌 अरू केही भए म यहीँ छु।' : "Anytime! 🙌 I'm here whenever you need me.");
+    }
+
+    return ChatMessage.aiText(np
+        ? 'तपाईंको आजको data (Recovery ८९, HRV ६८ms, Sleep ८घ १२मि) राम्रो छ। थप जान्न "recovery", "workout" वा "sleep" बारे सोध्नुहोस्।'
+        : 'Your data today (Recovery 89, HRV 68ms, Sleep 8h 12m) looks great. Ask about "recovery", "workout", or "sleep" to dig deeper.');
+  }
+
   String get heroCaption => np
       ? 'आज तपाईं अत्यन्त राम्रो अवस्थामा हुनुहुन्छ — भारी workout गर्न उत्तम दिन।'
       : 'You are in excellent condition today — a perfect day for an intense workout.';

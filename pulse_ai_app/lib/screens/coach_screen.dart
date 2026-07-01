@@ -7,24 +7,64 @@ import '../theme/colors.dart';
 import '../theme/typography.dart';
 import '../widgets/common.dart';
 
-class CoachScreen extends StatelessWidget {
+class CoachScreen extends StatefulWidget {
   const CoachScreen({super.key});
+
+  @override
+  State<CoachScreen> createState() => _CoachScreenState();
+}
+
+class _CoachScreenState extends State<CoachScreen> {
+  final _input = TextEditingController();
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _input.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _send(AppState app) {
+    final text = _input.text;
+    if (text.trim().isEmpty) return;
+    app.sendMessage(text);
+    _input.clear();
+    FocusScope.of(context).unfocus();
+  }
+
+  void _scrollToEnd() {
+    if (!_scroll.hasClients) return;
+    _scroll.animateTo(
+      _scroll.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
     final d = app.data;
     final np = app.nepali;
+    final messages = app.messages;
+
+    // Keep the conversation pinned to the latest message / typing bubble.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
 
     return Column(children: [
       _header(app, np),
       Expanded(
         child: ListView.separated(
+          controller: _scroll,
           padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
           physics: const BouncingScrollPhysics(),
-          itemCount: app.messages.length,
+          itemCount: messages.length + (app.coachTyping ? 1 : 0),
           separatorBuilder: (_, __) => const SizedBox(height: 14),
-          itemBuilder: (_, i) => _bubble(app.messages[i], np),
+          itemBuilder: (_, i) {
+            if (i >= messages.length) return const _TypingBubble();
+            return _bubble(messages[i], np);
+          },
         ),
       ),
       _composer(app, d, np),
@@ -227,21 +267,96 @@ class CoachScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
+            padding: const EdgeInsets.fromLTRB(18, 4, 8, 4),
             decoration: BoxDecoration(
               color: C.card,
               borderRadius: BorderRadius.circular(32),
               border: Border.all(color: C.whiteT(.09)),
             ),
             child: Row(children: [
-              Expanded(child: Text(d.inputPlaceholder, style: F.briefed(np, size: 15, color: C.dim7))),
-              Container(
-                width: 40, height: 40,
-                decoration: const BoxDecoration(color: C.accent, shape: BoxShape.circle),
-                child: const Icon(Icons.send_rounded, size: 19, color: Color(0xFF04130D)),
+              Expanded(
+                child: TextField(
+                  controller: _input,
+                  onSubmitted: (_) => _send(app),
+                  textInputAction: TextInputAction.send,
+                  cursorColor: C.accent,
+                  minLines: 1,
+                  maxLines: 4,
+                  style: F.briefed(np, size: 15, color: C.textHi),
+                  decoration: InputDecoration(
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    hintText: d.inputPlaceholder,
+                    hintStyle: F.briefed(np, size: 15, color: C.dim7),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _send(app),
+                child: Container(
+                  width: 40, height: 40,
+                  decoration: const BoxDecoration(color: C.accent, shape: BoxShape.circle),
+                  child: const Icon(Icons.send_rounded, size: 19, color: Color(0xFF04130D)),
+                ),
               ),
             ]),
           ),
         ]),
       );
+}
+
+/// Left-aligned AI bubble with three pulsing dots while a reply is "typing".
+class _TypingBubble extends StatefulWidget {
+  const _TypingBubble();
+
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: C.card,
+          border: Border.all(color: C.line),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(22), topRight: Radius.circular(22),
+            bottomLeft: Radius.circular(5), bottomRight: Radius.circular(22),
+          ),
+        ),
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (_, __) => Row(mainAxisSize: MainAxisSize.min, children: [
+            for (var i = 0; i < 3; i++) ...[
+              _dot(i),
+              if (i != 2) const SizedBox(width: 5),
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _dot(int i) {
+    final phase = (_c.value + i * 0.2) % 1.0;
+    final o = 0.3 + 0.7 * (phase < 0.5 ? phase * 2 : (1 - phase) * 2);
+    return Container(
+      width: 7, height: 7,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: C.dim2.withValues(alpha: o)),
+    );
+  }
 }
