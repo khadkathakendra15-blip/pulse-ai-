@@ -1,0 +1,56 @@
+# Pulse AI — local dev stack (modular monolith).
+#   docker compose -f infra/docker-compose.yml up --build
+#
+# Brings up Postgres + Redis + the NestJS backend + the FastAPI AI engine.
+# Requires Docker Desktop. Without Docker, run Postgres/Redis locally (or use a
+# hosted Postgres) and start each service with its own dev command.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pulse
+      POSTGRES_PASSWORD: pulse
+      POSTGRES_DB: pulse
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  ai-engine:
+    build: ../ai-engine
+    environment:
+      PULSE_LLM_PROVIDER: ${PULSE_LLM_PROVIDER:-anthropic}
+      PULSE_LLM_MODEL: ${PULSE_LLM_MODEL:-claude-opus-4-8}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports: ["8000:8000"]
+
+  backend:
+    build: ../backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      ai-engine:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://pulse:pulse@postgres:5432/pulse?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      AI_ENGINE_URL: http://ai-engine:8000
+    ports: ["3000:3000"]
+    # On first boot run migrations, then start:
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
+
+volumes:
+  pgdata:

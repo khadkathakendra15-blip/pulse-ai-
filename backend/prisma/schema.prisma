@@ -1,0 +1,106 @@
+// Pulse AI — data model.
+//
+// Local dev uses SQLite (zero external setup). For production, switch the
+// datasource to Postgres — only these two lines change:
+//     provider = "postgresql"
+//     url      = env("DATABASE_URL")   // postgres://…
+// The models are portable as-is (metric/plan are stored as strings, not DB
+// enums, so the same schema works on both). HealthSample is the candidate for a
+// TimescaleDB hypertable on Postgres once volume grows (see docs/ARCHITECTURE.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  name         String?
+  locale       String         @default("np") // 'np' | 'en'
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  devices       Device[]
+  samples       HealthSample[]
+  scores        DailyScore[]
+  subscription  Subscription?
+  aiLogs        AiLog[]
+}
+
+model Device {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mac        String
+  name       String?
+  platform   String   @default("android") // 'android' (QRing) | 'ios' (QCBandSDK)
+  firmware   String?
+  lastSyncAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, mac])
+}
+
+/// One reading of one metric at a point in time.
+/// `metric` ∈ HEART_RATE | HRV | SPO2 | STEPS | SLEEP_MINUTES | STRESS | TEMPERATURE | BATTERY
+model HealthSample {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metric    String
+  value     Float
+  unit      String?
+  recordedAt DateTime
+  source    String   @default("band") // 'band' | 'manual' | 'demo'
+  createdAt DateTime @default(now())
+
+  @@index([userId, metric, recordedAt])
+}
+
+/// Daily roll-up of the composite Health/Recovery/Readiness scores.
+model DailyScore {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day        DateTime
+  health     Int
+  recovery   Int
+  readiness  Int
+  breakdown  String // JSON string: per-signal sub-scores + weights
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, day])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      String   @default("FREE") // FREE | PRO | CORPORATE
+  status    String   @default("active")
+  provider  String? // 'esewa' | 'khalti' | 'fonepay' | 'stripe'
+  renewsAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Audit log of AI engine calls (cost/observability).
+model AiLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // 'coach' | 'analyze'
+  promptKey String?
+  model     String?
+  tokensIn  Int?
+  tokensOut Int?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}

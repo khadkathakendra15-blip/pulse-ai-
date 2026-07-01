@@ -1,0 +1,37 @@
+# ── dependencies / build output ─────────────────────────────
+node_modules/
+dist/
+build/
+.dart_tool/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# ── databases (local dev) ───────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+backend/prisma/migrations/**/migration_lock.toml
+
+# ── secrets / env ───────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── logs / scratch ──────────────────────────────────────────
+*.log
+_verify.png
+_dom.html
+
+# ── vendor wearable SDKs (proprietary — obtain from QCWireless/oudmon) ──
+# Excluded from source control: licensing terms are per-vendor and the
+# binaries are large. Place them locally to build the native BLE bridge.
+QRing_Android_SDK_1.0.0.27/
+QWatchPro_iOS_SDK_V1.0.0_20260326/
+
+# ── OS / editor ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
