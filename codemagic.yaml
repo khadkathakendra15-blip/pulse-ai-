@@ -1,0 +1,63 @@
+# Codemagic CI — builds the Pulse AI Flutter app.
+# Codemagic runs on a cloud Mac, so it CAN build iOS even though you develop on
+# Windows. Connect this repo at https://codemagic.io → pick a workflow below.
+#
+#  • ios-unsigned  → compiles the iOS app WITHOUT an Apple account (proves it
+#                    builds; the artifact is NOT installable on a real iPhone).
+#  • ios-release   → produces a signed, installable .ipa. Needs an Apple
+#                    Developer account ($99/yr) connected in Codemagic
+#                    (Teams → Integrations → Apple Developer Portal), then set
+#                    the bundle id + signing there and remove the `--no-codesign`.
+#  • android       → builds an installable .apk (no paid account needed).
+
+workflows:
+  ios-unsigned:
+    name: iOS build (unsigned — verifies compile)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Flutter deps
+        script: cd pulse_ai_app && flutter pub get
+      - name: Build iOS (no signing)
+        script: cd pulse_ai_app && flutter build ios --release --no-codesign
+    artifacts:
+      - pulse_ai_app/build/ios/iphoneos/*.app
+
+  ios-release:
+    name: iOS install file (.ipa — needs Apple account)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: pulse-ai-key   # create this key in Codemagic first
+    environment:
+      flutter: stable
+      xcode: latest
+      ios_signing:
+        distribution_type: development   # 'ad_hoc' for specific test devices
+        bundle_identifier: com.pulseai.app   # set to your real bundle id
+    scripts:
+      - name: Flutter deps
+        script: cd pulse_ai_app && flutter pub get
+      - name: Set up signing
+        script: cd pulse_ai_app && xcode-project use-profiles
+      - name: Build signed IPA
+        script: cd pulse_ai_app && flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - pulse_ai_app/build/ios/ipa/*.ipa
+
+  android:
+    name: Android install file (.apk)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+    scripts:
+      - name: Flutter deps
+        script: cd pulse_ai_app && flutter pub get
+      - name: Build APK
+        script: cd pulse_ai_app && flutter build apk --release
+    artifacts:
+      - pulse_ai_app/build/app/outputs/flutter-apk/*.apk
