@@ -17,6 +17,17 @@ class AppState extends ChangeNotifier {
   bool whyScoreOpen = false;
   bool coachTyping = false; // simulated "typing…" indicator
 
+  /// Onboarding gate — app starts on the onboarding flow, then the shell.
+  bool onboardingDone = false;
+  String userName = 'Thakendra';
+
+  void completeOnboarding({String? name}) {
+    final n = name?.trim();
+    if (n != null && n.isNotEmpty) userName = n;
+    onboardingDone = true;
+    notifyListeners();
+  }
+
   /// Coach conversation. Null means "show the opening script".
   List<ChatMessage>? _messages;
 
@@ -31,7 +42,7 @@ class AppState extends ChangeNotifier {
     _bindBand();
   }
 
-  PulseData get data => PulseData(np: nepali);
+  PulseData get data => PulseData(np: nepali, name: userName);
   bool get bandLive => bandState == BandState.connected;
 
   List<ChatMessage> get messages => _messages ?? data.baseMessages();

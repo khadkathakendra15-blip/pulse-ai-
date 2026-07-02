@@ -7,6 +7,7 @@ import 'screens/body_screen.dart';
 import 'screens/coach_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/insights_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/score_screen.dart';
 import 'theme/colors.dart';
 import 'widgets/bottom_nav.dart';
@@ -43,8 +44,22 @@ class PulseApp extends StatelessWidget {
           splashFactory: NoSplash.splashFactory,
           highlightColor: Colors.transparent,
         ),
-        home: const _Shell(),
+        home: const _Root(),
       ),
+    );
+  }
+}
+
+/// Onboarding gate — shows the onboarding flow on first launch, then the shell.
+class _Root extends StatelessWidget {
+  const _Root();
+
+  @override
+  Widget build(BuildContext context) {
+    final done = context.select<AppState, bool>((a) => a.onboardingDone);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: done ? const _Shell() : const OnboardingScreen(),
     );
   }
 }
