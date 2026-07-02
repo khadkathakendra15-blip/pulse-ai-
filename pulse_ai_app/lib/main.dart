@@ -44,7 +44,50 @@ class PulseApp extends StatelessWidget {
           splashFactory: NoSplash.splashFactory,
           highlightColor: Colors.transparent,
         ),
+        // Responsive shell — full-width on phones, a centered phone-width
+        // panel on tablet/desktop/web so the mobile UI never stretches.
+        builder: (context, child) => _Responsive(child: child ?? const SizedBox()),
         home: const _Root(),
+      ),
+    );
+  }
+}
+
+/// Constrains the whole app to a phone-width column and centres it on wide
+/// viewports; passes through untouched on real phones. The constrained region
+/// reports its own width via a MediaQuery override so `SafeArea`, layout, and
+/// keyboard insets all behave correctly.
+class _Responsive extends StatelessWidget {
+  final Widget child;
+  const _Responsive({required this.child});
+
+  static const double _phoneMax = 448;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    // Narrow (real phone) → fill the screen.
+    if (mq.size.width <= _phoneMax + 40) return child;
+
+    // Wide → centre a phone-width panel on the app background, with a hairline
+    // edge to make the framing feel intentional.
+    return ColoredBox(
+      color: C.bodyBg,
+      child: Center(
+        child: Container(
+          width: _phoneMax,
+          decoration: const BoxDecoration(
+            color: C.screenBg,
+            border: Border(
+              left: BorderSide(color: C.line),
+              right: BorderSide(color: C.line),
+            ),
+          ),
+          child: MediaQuery(
+            data: mq.copyWith(size: Size(_phoneMax, mq.size.height)),
+            child: child,
+          ),
+        ),
       ),
     );
   }
