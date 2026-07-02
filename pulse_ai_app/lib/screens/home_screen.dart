@@ -296,7 +296,7 @@ class HomeScreen extends StatelessWidget {
         ]),
       );
 
-  Widget _predictive(d, bool np) => Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+  Widget _predictive(d, bool np) => IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Expanded(
           child: CardBox(
             radius: 22,
@@ -336,7 +336,7 @@ class HomeScreen extends StatelessWidget {
             ]),
           ),
         ),
-      ]);
+      ]));
 
   Widget _whyCard(BuildContext context, AppState app, d, bool np) => GestureDetector(
         onTap: app.toggleWhy,

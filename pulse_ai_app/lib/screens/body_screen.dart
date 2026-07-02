@@ -90,7 +90,7 @@ class BodyScreen extends StatelessWidget {
         ]),
       );
 
-  Widget _forecast(d, bool np) => Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+  Widget _forecast(d, bool np) => IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Expanded(
           child: CardBox(
             radius: 22, border: C.accentT(.18),
@@ -120,7 +120,7 @@ class BodyScreen extends StatelessWidget {
             ]),
           ),
         ),
-      ]);
+      ]));
 
   Widget _achievement(Achievement a, bool np) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
